@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), task.toString() + " is removed!", Toast.LENGTH_SHORT).show();
                 Log.d(TAG, "Usuwamy task " + task.toString());
 
-                asyncTask = new DeleteTask().execute(task.getTitle());
+                asyncTask = new DeleteTask().execute(task);
 
                 //mAdapter.remove(task);
             }
@@ -109,12 +109,7 @@ public class MainActivity extends AppCompatActivity {
 
                                 Task currentTask = new Task(taskText);
 
-                                ContentValues values = new ContentValues();
-                                values.put(TaskContract.TaskEntry.COL_TASK_TITLE, currentTask.getTitle());
-                                values.put(TaskContract.TaskEntry.COL_TASK_DATE, currentTask.getDate());
-
-                                // we egonre ID column, because it will be handled by a database
-                                asyncTask = new InsertTask().execute(values);
+                                asyncTask = new InsertTask().execute(currentTask);
 
                                 Log.d(TAG, "Zadanie dodane: " + taskText);
 
@@ -183,24 +178,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class InsertTask extends BaseTask<ContentValues> {
+    private class InsertTask extends BaseTask<Task> {
         @Override
-        protected Cursor doInBackground(ContentValues... values) {
+        protected Cursor doInBackground(Task... values) {
+            Task currentTask = values[0];
+
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(TaskContract.TaskEntry.COL_TASK_TITLE, currentTask.getTitle());
+            contentValues.put(TaskContract.TaskEntry.COL_TASK_DATE, currentTask.getDate());
+
+            // we egonre ID column, because it will be handled by a database
             db.insertWithOnConflict(TaskContract.TaskEntry.TABLE,
                     null,
-                    values[0],
+                    contentValues,
                     SQLiteDatabase.CONFLICT_REPLACE);
 
             return(doQuery());
         }
     }
 
-    private class DeleteTask extends BaseTask<String> {
+    private class DeleteTask extends BaseTask<Task> {
         @Override
-        protected Cursor doInBackground(String... value) {
+        protected Cursor doInBackground(Task... value) {
             db.delete(TaskContract.TaskEntry.TABLE,
-                    TaskContract.TaskEntry.COL_TASK_TITLE + " = ?",
-                    new String[]{value[0]});
+                    TaskContract.TaskEntry._ID + " = ?",
+                    new String[]{String.valueOf(value[0].getId())});
 
             return(doQuery());
         }
