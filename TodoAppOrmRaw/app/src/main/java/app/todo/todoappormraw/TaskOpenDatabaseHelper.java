@@ -18,7 +18,8 @@ public class TaskOpenDatabaseHelper extends OrmLiteSqliteOpenHelper {
     /**
      * The data access object used to interact with the Sqlite database to do C.R.U.D operations.
      */
-    private Dao<Task, Long> todoDao;
+    private Dao<Task, Long> taskDao;
+    private Dao<TaskOwner, Long>  taskOwnerDao;
 
     public TaskOpenDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION,
@@ -37,6 +38,7 @@ public class TaskOpenDatabaseHelper extends OrmLiteSqliteOpenHelper {
              * creates the Todo database table
              */
             TableUtils.createTable(connectionSource, Task.class);
+            TableUtils.createTable(connectionSource, TaskOwner.class);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -51,6 +53,7 @@ public class TaskOpenDatabaseHelper extends OrmLiteSqliteOpenHelper {
              * Recreates the database when onUpgrade is called by the framework
              */
             TableUtils.dropTable(connectionSource, Task.class, false);
+            TableUtils.dropTable(connectionSource, TaskOwner.class, false);
             onCreate(database, connectionSource);
 
         } catch (SQLException e) {
@@ -63,10 +66,22 @@ public class TaskOpenDatabaseHelper extends OrmLiteSqliteOpenHelper {
      * @return
      * @throws SQLException
      */
-    public Dao<Task, Long> getDao() throws SQLException {
-        if(todoDao == null) {
-            todoDao = getDao(Task.class);
+    public Dao<Task, Long> getTaskDao() throws SQLException {
+        if(taskDao == null) {
+            taskDao = getDao(Task.class);
         }
-        return todoDao;
+        return taskDao;
+    }
+
+    /**
+     * Returns an instance of the data access object
+     * @return
+     * @throws SQLException
+     */
+    public Dao<TaskOwner, Long> getTaskOwnerDao() throws SQLException {
+        if(taskOwnerDao == null) {
+            taskOwnerDao = getDao(TaskOwner.class);
+        }
+        return taskOwnerDao;
     }
 }

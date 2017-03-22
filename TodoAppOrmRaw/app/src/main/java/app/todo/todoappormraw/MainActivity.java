@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.dao.ForeignCollection;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.dao.RawRowMapper;
 import com.j256.ormlite.stmt.DeleteBuilder;
@@ -14,9 +15,7 @@ import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
 
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -24,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     TaskOpenDatabaseHelper dbHelper;
     Dao<Task, Long> taskDao;
+    Dao<TaskOwner, Long> taskOwnerDao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +34,8 @@ public class MainActivity extends AppCompatActivity {
                 TaskOpenDatabaseHelper.class);
 
         try {
-            taskDao = dbHelper.getDao();
+            taskDao = dbHelper.getTaskDao();
+            taskOwnerDao = dbHelper.getTaskOwnerDao();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -70,18 +71,13 @@ public class MainActivity extends AppCompatActivity {
         taskDao.create(task);
 
         // PRZYKLAD 2 dodajemy dwa pola (title i date) ------------------------------------------
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
-        String currentDateAndTime = sdf.format(new Date());
-
-        task = new Task("Nasza druga notatka", currentDateAndTime, null);
+        task = new Task("Nasza druga notatka");
         taskDao.create(task);
 
         // PRZYKLAD 3 dodajemy notatki w petli (zeby zapelnic baze)  ---------------------------
         List<Task> taskList = new ArrayList<Task>();
-        currentDateAndTime = sdf.format(new Date());
-
         for (int i = 1; i <= 10; i++) {
-            task = new Task("Nasza notatka " + String.valueOf(i), currentDateAndTime, null);
+            task = new Task("Nasza notatka " + String.valueOf(i));
             taskList.add(task);
         }
         taskDao.create(taskList);
@@ -134,39 +130,96 @@ public class MainActivity extends AppCompatActivity {
         PreparedDelete<Task> preparedDelete = deleteBuilder.prepare();
         taskDao.delete(preparedDelete);
 
-        fetchAllDatabase();
+        fetchAllTasks();
 
         // PRZYKLAD 2 - usuniecie elementu o ID = 9 ------------------
 
         indexToDelete = 9;
         taskDao.deleteById(Long.valueOf(indexToDelete));
 
-        fetchAllDatabase();
+        fetchAllTasks();
 
         /// PRZYKLAD 3 - usuniecie wszystkich elementow------------------
 
         List<Task> resultsToDelete = taskDao.queryForAll();
         taskDao.delete(resultsToDelete);
 
-        fetchAllDatabase();
+        fetchAllTasks();
 
+
+
+        // ################################################################
+        // Przyklady z dwiema tabelami (foreign keys)
+        // ################################################################
+
+        TaskOwner ownerAdam = new TaskOwner("Adam");
+        TaskOwner ownerMichal = new TaskOwner("Michal");
+        TaskOwner ownerPiotr = new TaskOwner("Piotr");
+
+        taskOwnerDao.create(ownerAdam);
+        taskOwnerDao.create(ownerMichal);
+        taskOwnerDao.create(ownerPiotr);
+
+
+
+        task = new Task("New task 1 with owner");
+        task.setTaskOwner(ownerAdam);
+        taskDao.create(task);
+
+        task = new Task("New task 2 with owner");
+        task.setTaskOwner(ownerAdam);
+        taskDao.create(task);
+
+        Log.d(TAG, "Tasks1");
+        Log.d(TAG, ownerAdam.toString());
+        ForeignCollection<Task> tasksOfOwner = ownerAdam.getTasks();
+
+        // NOT updated automatically, will give you null pointer exception here
+        /*for (Task t:
+                tasksOfOwner) {
+            Log.d(TAG, task.toString());
+        }*/
+        fetchAllTasks();
+
+        ownerAdam = taskOwnerDao.queryForId(ownerAdam.getId());
+
+
+        Log.d(TAG, "Tasks2");
+        Log.d(TAG, ownerAdam.toString());
+        tasksOfOwner = ownerAdam.getTasks();
+        for (Task t:
+                tasksOfOwner) {
+            Log.d(TAG, task.toString());
+        }
+
+        fetchAllTasks();
 
 
     }
 
-    private void fetchAllDatabase() {
-        Log.d(TAG, "fetchAllDatabase");
+    private void fetchAllTasks() {
+        Log.d(TAG, "fetchAllTasks");
         try {
-
             List<Task> results = taskDao.queryForAll();
-            for (Task todo:
+            for (Task task:
                     results) {
-                Log.d("Result: ", todo.toString());
+                Log.d("Result: ", task.toString());
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
 
+    private void fetchAllOwners() {
+        Log.d(TAG, "fetchAllOwners");
+        try {
+            List<TaskOwner> results = taskOwnerDao.queryForAll();
+            for (TaskOwner taskOwner:
+                    results) {
+                Log.d("Result: ", taskOwner.toString());
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
